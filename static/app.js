@@ -13,6 +13,7 @@ let scoreFrame = 0;
 function setCoreState(state) {
   document.body.dataset.state = state;
   byId("core-status").textContent = state === "scanning" ? "Shield core scanning" : state === "idle" ? "Shield core ready" : "Deployment gate · " + state;
+  document.dispatchEvent(new CustomEvent("shield-state-change", { detail: { state } }));
 }
 
 function pathMatches(path, pattern) {
@@ -266,8 +267,14 @@ byId("sample").addEventListener("click", async () => {
     if (!response.ok) throw new Error("Sample unavailable.");
     sampleFile = new File([await response.blob()], "sample-vulnerable.zip", {type:"application/zip"});
     byId("file").required = false;
+    document.dispatchEvent(new CustomEvent("shield-file-selected", { detail: { file: sampleFile } }));
     status.textContent = "Sample vulnerable project loaded. Run security scan to inspect it.";
   } catch (error) { status.textContent = error.message; }
   finally { byId("sample").disabled = false; }
 });
-byId("file").addEventListener("change", () => { sampleFile = null; byId("file").required = true; });
+byId("file").addEventListener("change", () => {
+  sampleFile = null;
+  byId("file").required = true;
+  const picked = byId("file").files[0] || null;
+  document.dispatchEvent(new CustomEvent("shield-file-selected", { detail: { file: picked } }));
+});

@@ -27,6 +27,7 @@
 <p id="ignore-help" class="hint">Comma-separated patterns. * matches any characters, ? matches one. Filters displayed findings only. The verdict and exported audit include all findings.</p>
 <p id="preferences-status" aria-live="polite" class="hint"></p></div></details>
     </div>
+    <div class="nav-progress" aria-hidden="true"><span id="scroll-progress-bar"></span></div>
   </header>
 
   <main class="shell">
@@ -75,8 +76,18 @@
         </div>
         <div class="spec-card">
           <div class="spec-heading"><h2>Security telemetry</h2><span id="stage-label">Overview</span></div>
-          <dl><div><dt>Engine</dt><dd>Hybrid Static + AI</dd></div><div><dt>Execution</dt><dd>Zero-run isolation</dd></div><div><dt>Coverage</dt><dd>Secrets · CWE · Cloud config</dd></div><div><dt>Gate</dt><dd>BLOCK / WARN / PASS</dd></div></dl>
+          <dl>
+            <div><dt>Engine</dt><dd id="telemetry-engine">Hybrid Static + AI</dd></div>
+            <div><dt>Execution</dt><dd id="telemetry-execution">Zero-run isolation</dd></div>
+            <div><dt>Coverage</dt><dd id="telemetry-coverage">Secrets · CWE · Cloud config</dd></div>
+            <div><dt>Gate</dt><dd id="telemetry-gate">BLOCK / WARN / PASS</dd></div>
+          </dl>
           <p id="core-status" class="core-status" aria-live="polite">Shield core ready</p>
+        </div>
+        <div class="sim-pills" role="group" aria-label="Live threat simulation presets">
+          <button type="button" class="sim-pill" data-sim="clean" aria-pressed="false">Simulate: Clean Repo</button>
+          <button type="button" class="sim-pill" data-sim="warn" aria-pressed="false">Simulate: Leaked Key</button>
+          <button type="button" class="sim-pill" data-sim="block" aria-pressed="false">Simulate: Critical Exploit</button>
         </div>
       </aside>
     </div>
@@ -90,11 +101,13 @@
             <button type="button" role="tab" id="zip-tab" aria-controls="zip-panel" aria-selected="true">ZIP upload</button>
             <button type="button" role="tab" id="github-tab" aria-controls="github-panel" aria-selected="false" tabindex="-1">GitHub URL</button>
           </div>
-          <div id="zip-panel" role="tabpanel" aria-labelledby="zip-tab" class="source upload">
+          <div id="zip-panel" role="tabpanel" aria-labelledby="zip-tab" class="source upload dropzone" tabindex="0" aria-describedby="zip-help">
             <label for="file">Project archive</label>
+            <p class="dropzone-prompt">Drag &amp; drop a <code>.zip</code> archive here, or choose a file below.</p>
             <input id="file" name="file" type="file" accept=".zip,application/zip" required aria-describedby="zip-help">
+            <p id="file-meta" class="file-meta" aria-live="polite" hidden></p>
             <button type="button" id="sample" class="secondary">Load sample vulnerable project</button>
-            <p id="zip-help" class="hint">ZIP archive · up to 5 MB</p>
+            <p id="zip-help" class="hint">ZIP archive · up to 5 MB · up to 50 eligible files</p>
           </div>
           <div id="github-panel" role="tabpanel" aria-labelledby="github-tab" class="source upload" hidden>
             <label for="url">Public repository URL</label>
