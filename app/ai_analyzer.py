@@ -7,6 +7,7 @@ from time import monotonic
 
 import httpx
 
+from .knowledge_db import get_relevant_knowledge
 from .scanner import BY_ID, CHUNK
 
 
@@ -34,12 +35,40 @@ CHECKS = {
 }
 
 
-def checklist_order(ids, target, sensitivity):
+def _format_kb_context(knowledge):
+    cwe_entries = [
+        {
+            "rule_id": item["rule_id"],
+            "cwe_id": item["cwe_id"],
+            "title": item["title"],
+            "severity": item["severity"],
+            "attack_vector": item["attack_vector"],
+            "secure_fix_template": item["secure_fix_template"],
+        }
+        for item in knowledge.get("cwe_knowledge", {}).values()
+    ]
+    cal_entries = [
+        {
+            "deployment_target": item["deployment_target"],
+            "data_sensitivity": item["data_sensitivity"],
+            "expected_verdict": item["expected_verdict"],
+            "rationale": item["rationale"],
+        }
+        for item in knowledge.get("calibration_examples", [])
+    ]
+    return json.dumps({"cwe_knowledge": cwe_entries, "calibration_examples": cal_entries})
+
+
+def checklist_order(ids, target, sensitivity, knowledge=None):
     if not os.getenv("GEMINI_API_KEY"):
         return None
+    if knowledge is None:
+        knowledge = get_relevant_knowledge(ids, target.value, sensitivity.value)
+    kb_context = _format_kb_context(knowledge)
     prompt = (
         f"Deployment target: {target.value}. Data sensitivity: {sensitivity.value}. "
         f"Observed scanner categories: {', '.join(sorted(set(ids))) or 'none'}. "
+        f"Authoritative Security Knowledge & Calibration Examples: {kb_context}. "
         "Rank the provided hardening checklist items for the first day of deployment. "
     )
     if target == Target.mvp:
@@ -89,13 +118,19 @@ def analyze(matches, coverage, target, sensitivity):
         "WARN": "Review the findings and scan coverage before deployment.",
         "PASS": "The scanner found no supported risk patterns in the inspected files.",
     }[verdict]
+    rule_ids = [match[0] for match in ordered]
+    knowledge = get_relevant_knowledge(rule_ids, target.value, sensitivity.value)
+    cwe_kb = knowledge.get("cwe_knowledge", {})
     findings = []
     for rule_id, file, line, diff in ordered:
         rule = BY_ID[rule_id]
+        kb = cwe_kb.get(rule_id)
         findings.append({
             "rule_id": rule_id, "severity": rule.severity, "file": file, "line": line,
-            "category": rule.category, "exploit_scenario": rule.scenario,
-            "remediation": rule.fix, "remediation_diff": diff,
+            "category": kb["cwe_id"] if kb else rule.category,
+            "exploit_scenario": kb["attack_vector"] if kb else rule.scenario,
+            "remediation": kb["secure_fix_template"] if kb else rule.fix,
+            "remediation_diff": diff,
             "snippet": coverage.get("snippets", {}).get(str(matches.index((rule_id, file, line, diff)))),
         })
     defaults = ["credentials", "input", "monitoring"]
@@ -103,7 +138,7 @@ def analyze(matches, coverage, target, sensitivity):
         defaults = ["access", "identity", "monitoring"]
     if sensitivity == Sensitivity.high:
         defaults = ["credentials", "payments", "access"]
-    ai = checklist_order([match[0] for match in ordered], target, sensitivity)
+    ai = checklist_order(rule_ids, target, sensitivity, knowledge=knowledge)
     checks = ai or defaults
     if incomplete and "coverage" not in checks:
         checks = [*checks, "coverage"]

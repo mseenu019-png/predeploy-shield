@@ -278,6 +278,9 @@ body[data-theme="daylight"] .sim-pill[data-sim="block"][aria-pressed="true"] { c
 .dropzone-prompt { font-size:.875rem; color:var(--muted); margin:0 0 .55rem; }
 .dropzone.is-dragover { border-color:var(--accent); border-style:solid; box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent); background:color-mix(in srgb,var(--accent) 8%,transparent); }
 .file-meta { margin:.55rem 0 0; font-size:.85rem; font-family:monospace; color:var(--ink); padding:.35rem .6rem; border-radius:.4rem; border:1px solid var(--studio-hairline); background:var(--studio-surface); }
+.finding-actions { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; }
+.calibrate-btn { font-size:.82rem; opacity:.88; }
+.calibrate-btn:disabled { opacity:.6; cursor:default; }
 
 .studio-action, .primary { transition:transform .25s cubic-bezier(.22,1,.36,1),background-color .2s ease; }
 body[data-motion="reduced"] .studio-action,

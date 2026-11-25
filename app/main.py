@@ -21,6 +21,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from .ai_analyzer import Sensitivity, Target, analyze
+from .knowledge_db import init_db, record_calibration_feedback
 from .scanner import CHUNK, MAX_ARCHIVE, ScanError, scan_zip
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -37,6 +38,7 @@ SECURITY_HEADERS = {
 
 @asynccontextmanager
 async def lifespan(app):
+    await run_in_threadpool(init_db)
     app.state.scan_slots = anyio.Semaphore(2)
     yield
 
@@ -264,3 +266,32 @@ def sample_project():
         sample.writestr("deploy.sh", "chmod 777 app\n")
         sample.writestr("Dockerfile", "FROM python:3.11-slim\nCOPY . /app\n")
     return Response(archive.getvalue(), media_type="application/zip")
+
+
+class CalibrationInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    code_snippet: str = Field(default="", max_length=500)
+    file_path: str = Field(default="", max_length=250)
+    deployment_target: Target
+    data_sensitivity: Sensitivity
+    classification: str = Field(pattern="^(verified_true_positive|false_positive)$")
+    rationale: str = Field(default="", max_length=500)
+
+
+@app.post("/api/calibrate")
+async def calibrate_finding(payload: CalibrationInput):
+    expected_verdict = "PASS" if payload.classification == "false_positive" else "BLOCK"
+    rationale = payload.rationale.strip() or (
+        "Marked as false positive via UI calibration." if payload.classification == "false_positive"
+        else "Verified true positive via UI calibration."
+    )
+    row_id = await run_in_threadpool(
+        record_calibration_feedback,
+        payload.code_snippet,
+        payload.file_path,
+        payload.deployment_target.value,
+        payload.data_sensitivity.value,
+        expected_verdict,
+        rationale,
+    )
+    return {"status": "recorded", "id": row_id, "expected_verdict": expected_verdict}

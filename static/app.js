@@ -177,18 +177,44 @@ function render(report) {
       const excerpt = add(details, "pre", "", "engineer-only");
       add(excerpt, "code", finding.snippet, "diff-line diff-remove");
     }
+    const actions = add(details, "div", "", "finding-actions");
     if (finding.remediation_diff) {
       const block = add(details, "pre", "", "engineer-only");
       for (const line of finding.remediation_diff.split("\n")) {
         add(block, "code", line, "diff-line " + (line.startsWith("-") ? "diff-remove" : line.startsWith("+") ? "diff-add" : ""));
       }
-      const copy = add(details, "button", "Copy fix", "secondary engineer-only");
+      const copy = add(actions, "button", "Copy fix", "secondary engineer-only");
       copy.type = "button";
       copy.addEventListener("click", async () => {
         try { await navigator.clipboard.writeText(finding.remediation_diff); status.textContent = "Fix copied. Review before applying."; }
         catch { status.textContent = "Clipboard unavailable. Select and copy the patch text."; }
       });
     }
+    const fpBtn = add(actions, "button", "Mark as false positive (improve accuracy)", "secondary calibrate-btn");
+    fpBtn.type = "button";
+    fpBtn.addEventListener("click", async () => {
+      fpBtn.disabled = true;
+      try {
+        const res = await fetch("/api/calibrate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code_snippet: finding.snippet || finding.rule_id,
+            file_path: finding.file,
+            deployment_target: byId("target").value,
+            data_sensitivity: byId("sensitivity").value,
+            classification: "false_positive",
+            rationale: `User marked ${finding.rule_id} in ${finding.file} as false positive.`,
+          }),
+        });
+        if (!res.ok) throw new Error("Calibration save failed.");
+        fpBtn.textContent = "Saved to calibration DB";
+        status.textContent = "Calibration feedback saved to SQLite knowledge base.";
+      } catch (err) {
+        fpBtn.disabled = false;
+        status.textContent = err.message;
+      }
+    });
   }
 
   add(result, "h3", "Day-one hardening");
