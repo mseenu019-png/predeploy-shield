@@ -281,6 +281,10 @@ body[data-theme="daylight"] .sim-pill[data-sim="block"][aria-pressed="true"] { c
 .finding-actions { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; }
 .calibrate-btn { font-size:.82rem; opacity:.88; }
 .calibrate-btn:disabled { opacity:.6; cursor:default; }
+.report-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; margin-top:.6rem; }
+.report-actions .secondary { margin-top:0; }
+.harden-btn { width:auto; margin-top:0; padding:.5rem .95rem; font-size:.9rem; border-radius:.45rem; }
+.harden-banner { margin-top:.65rem; padding:.55rem .8rem; border-radius:.5rem; border:1px solid #10b98166; background:#10b9811a; color:var(--ink); font-size:.875rem; }
 
 .studio-action, .primary { transition:transform .25s cubic-bezier(.22,1,.36,1),background-color .2s ease; }
 body[data-motion="reduced"] .studio-action,

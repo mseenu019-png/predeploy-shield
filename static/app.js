@@ -6,6 +6,7 @@ const tabs = [...document.querySelectorAll('[role="tab"]')];
 const status = byId("status");
 const result = byId("result");
 let sampleFile = null;
+let lastScannedZip = null;
 let activeReport = null;
 let selectedSeverity = "all";
 let scoreFrame = 0;
@@ -134,9 +135,54 @@ function render(report) {
 
   const counts = Object.fromEntries(["critical", "high", "medium", "low"].map(level => [level, report.findings.filter(f => f.severity === level).length]));
   add(result, "p", Object.entries(counts).map(([level, count]) => level.toUpperCase() + " " + count).join(" · "), "severity-strip");
-  const exportButton = add(result, "button", "Export report (.md)", "secondary");
+  const reportActions = add(result, "div", "", "report-actions");
+  const exportButton = add(reportActions, "button", "Export report (.md)", "secondary");
   exportButton.type = "button";
   exportButton.addEventListener("click", () => exportReport(report));
+
+  if (lastScannedZip && (report.verdict === "BLOCK" || report.verdict === "WARN")) {
+    const hardenButton = add(reportActions, "button", "Download protected archive (.zip)", "primary harden-btn");
+    hardenButton.type = "button";
+    const hardenBanner = add(result, "p", "", "harden-banner");
+    hardenBanner.hidden = true;
+    hardenButton.addEventListener("click", async () => {
+      hardenButton.disabled = true;
+      hardenButton.textContent = "Building protected archive…";
+      try {
+        const body = new FormData();
+        body.set("file", lastScannedZip);
+        body.set("deployment_target", byId("target").value);
+        body.set("data_sensitivity", byId("sensitivity").value);
+        body.set("include_tests", byId("include-tests").checked ? "true" : "false");
+        const res = await fetch("/api/harden/zip", { method: "POST", body, signal: AbortSignal.timeout(60_000) });
+        if (!res.ok) {
+          const errPayload = await res.json().catch(() => null);
+          throw new Error(errPayload?.detail || "Could not harden archive.");
+        }
+        const blob = await res.blob();
+        const disp = res.headers.get("Content-Disposition") || "";
+        const match = /filename="([^"]+)"/.exec(disp);
+        const outName = match ? match[1] : "project-shielded.zip";
+        const dlUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = dlUrl;
+        link.download = outName;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(dlUrl), 1000);
+        const injected = res.headers.get("X-Shield-Injected") || "SECURITY.md,.env.example,.predeploy-shield.json";
+        const fixes = res.headers.get("X-Shield-Fixes") || "0";
+        hardenBanner.textContent = `Downloaded ${outName} · Injected: ${injected.split(",").join(", ")} · ${fixes} inline fix(es) applied.`;
+        hardenBanner.hidden = false;
+        status.textContent = `Protected archive ${outName} downloaded.`;
+      } catch (err) {
+        status.classList.add("error");
+        status.textContent = err.message;
+      } finally {
+        hardenButton.disabled = false;
+        hardenButton.textContent = "Download protected archive (.zip)";
+      }
+    });
+  }
   add(result, "h3", "Top fixes");
   const fixes = add(result, "ul", "");
   for (const fix of [...new Set(report.findings.map(f => f.remediation))].slice(0, 3)) add(fixes, "li", fix);
@@ -242,6 +288,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   const fields = new FormData(form);
+  lastScannedZip = upload ? (sampleFile || byId("file").files[0] || null) : null;
   if (upload && sampleFile) fields.set("file", sampleFile);
   const options = { method: "POST", body: fields, signal: AbortSignal.timeout(60_000) };
   if (!upload) {

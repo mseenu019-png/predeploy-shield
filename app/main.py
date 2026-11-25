@@ -9,8 +9,9 @@ from urllib.parse import urlsplit
 
 import anyio
 import httpx
+from io import BytesIO
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from python_multipart.multipart import parse_options_header
 from python_multipart.exceptions import MultipartParseError
@@ -21,6 +22,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from .ai_analyzer import Sensitivity, Target, analyze
+from .hardener import harden_zip
 from .knowledge_db import init_db, record_calibration_feedback
 from .scanner import CHUNK, MAX_ARCHIVE, ScanError, scan_zip
 
@@ -182,6 +184,54 @@ async def scan_upload(request: Request):
             with anyio.CancelScope(shield=True):
                 await form.close()
         return await run_in_threadpool(analyze, matches, coverage, context.deployment_target, context.data_sensitivity)
+
+
+@app.post("/api/harden/zip")
+async def harden_upload(request: Request):
+    if request.headers.get("content-type", "").split(";")[0].strip().lower() != "multipart/form-data":
+        raise ScanError("Send the ZIP as multipart/form-data.", 415)
+    _, options = parse_options_header(request.headers["content-type"])
+    if not 0 < len(options.get(b"boundary", b"")) <= 70:
+        raise ScanError("Invalid multipart boundary.", 400)
+    async with scan_slot(request):
+        parser = UploadParser(request.headers, bounded_body(request, UPLOAD_BODY_LIMIT), max_files=1, max_fields=3, max_part_size=256)
+        try:
+            form = await parser.parse()
+        except (MultiPartException, MultipartParseError) as exc:
+            raise ScanError("Invalid ZIP upload form.", 400) from exc
+        try:
+            file = form.get("file")
+            if not isinstance(file, UploadFile) or not (file.filename or "").lower().endswith(".zip"):
+                raise ScanError("Select a .zip file.")
+            if file.size is not None and file.size > MAX_ARCHIVE:
+                raise ScanError("ZIP exceeds the 5 MB compressed limit.", 413)
+            context = ScanContext(
+                deployment_target=form.get("deployment_target"),
+                data_sensitivity=form.get("data_sensitivity"),
+                include_tests=form.get("include_tests", False),
+            )
+            zip_bytes, out_name, meta = await run_in_threadpool(
+                harden_zip,
+                file.file,
+                file.filename,
+                context.deployment_target,
+                context.data_sensitivity,
+                context.include_tests,
+            )
+        except ValidationError as exc:
+            raise ScanError("Choose a valid deployment target and data sensitivity.") from exc
+        finally:
+            with anyio.CancelScope(shield=True):
+                await form.close()
+        return StreamingResponse(
+            BytesIO(zip_bytes),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{out_name}"',
+                "X-Shield-Injected": ",".join(meta["injected_files"]),
+                "X-Shield-Fixes": str(meta["fixes_applied"]),
+            },
+        )
 
 
 def repository(url):
