@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Review your project for exposed secrets and risky configuration before deployment.">
+  <title>PreDeploy Shield</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/preferences.js" defer></script>
+  <script src="/static/app.js" defer></script>
+  <script src="/static/studio.js" defer></script>
+</head>
+<body data-theme="daylight" data-motion="subtle" data-density="engineer" data-state="idle">
+  <a class="skip-link" href="#scan-form">Skip to scan controls</a>
+  <header class="top">
+    <div class="shell top-inner">
+      <a class="brand" href="/"><span class="brand-icon" aria-hidden="true">✓</span> PreDeploy <strong>Shield</strong></a>
+      <nav class="step-nav" aria-label="Guide stages">
+        <a href="#overview" aria-current="step">01 Overview</a><a href="#isolation">02 Isolation</a><a href="#audit">03 AI Audit</a><a href="#scan-workspace">04 Upload &amp; Scan</a>
+      </nav>
+      <details class="preferences"><summary>Preferences</summary><div class="preferences-body">
+<label for="theme">Visual theme</label><select id="theme"><option value="orbital">Orbital Dark</option><option value="stealth">Stealth Terminal</option><option value="daylight" selected>High-Contrast Daylight</option></select>
+<label for="motion">3D motion and effects</label><select id="motion"><option value="full">Full 3D + particles</option><option value="subtle" selected>Subtle motion</option><option value="reduced">Reduced motion</option></select>
+<p class="hint">Your system's reduced-motion preference takes priority.</p>
+<label for="density">Report view</label><select id="density"><option value="engineer">Deep Engineer View</option><option value="executive">Executive Summary View</option></select>
+<label for="ignore">Hide paths in report</label><input id="ignore" type="text" maxlength="500" placeholder="docs/*, *.md, legacy/*" aria-describedby="ignore-help">
+<p id="ignore-help" class="hint">Comma-separated patterns. * matches any characters, ? matches one. Filters displayed findings only. The verdict and exported audit include all findings.</p>
+<p id="preferences-status" aria-live="polite" class="hint"></p></div></details>
+    </div>
+  </header>
+
+  <main class="shell">
+
+    <div class="studio-pathway">
+      <div class="story">
+        <section class="story-stage" id="overview" data-stage="overview" aria-labelledby="title" tabindex="-1">
+          <p class="eyebrow">Pre-deployment security</p>
+          <h1 id="title">Scan before<br>you ship.</h1>
+          <p class="story-description">Your next release, inspected. Find exposed secrets and risky configuration before your project meets the world.</p>
+          <div class="story-actions"><a class="studio-action" href="#isolation">Explore how it works</a><a href="#scan-workspace">Jump straight to upload</a></div>
+          <p class="story-footnote">ZIP or public GitHub repository · Up to 5 MB</p>
+        </section>
+        <section class="story-stage" id="isolation" data-stage="isolation" aria-labelledby="isolation-title" tabindex="-1">
+          <p class="eyebrow">01 / Archive isolation</p>
+          <h2 id="isolation-title">Your code.<br>Safely contained.</h2>
+          <p class="story-description">Choose a ZIP or paste a public GitHub URL. The scanner validates archive paths and inspects text without running or importing your code.</p>
+          <p>Bounded memory, temporary files, and automatic cleanup keep each scan contained. Up to 50 eligible files are inspected.</p>
+          <a class="studio-action" href="#audit">Follow the audit</a>
+        </section>
+        <section class="story-stage" id="audit" data-stage="audit" aria-labelledby="audit-title" tabindex="-1">
+          <p class="eyebrow">02 / Context-aware audit</p>
+          <h2 id="audit-title">Risk needs<br>context.</h2>
+          <p class="story-description">Static rules flag leaked keys, risky SQL and HTML patterns, and cloud configuration issues. Your deployment target and data sensitivity determine the release gate.</p>
+          <p>When configured, Gemini prioritizes the hardening checklist. Deterministic analysis remains available without an API key.</p>
+          <a class="studio-action" href="#deployment-gate">See the release decision</a>
+        </section>
+        <section class="story-stage" id="deployment-gate" data-stage="gate" aria-labelledby="gate-title" tabindex="-1">
+          <p class="eyebrow">03 / Deployment decision</p>
+          <h2 id="gate-title">A clear gate.<br>A concrete next step.</h2>
+          <p class="story-description">Get a BLOCK, WARN, or PASS verdict with file locations and remediation advice. Review supported code diffs, copy a fix, or export the Markdown audit.</p>
+          <p>PASS reflects the inspected scope. Check skipped files and remaining hardening steps before release.</p>
+          <a class="studio-action" href="#scan-workspace">Upload your project now</a>
+        </section>
+      </div>
+      <aside class="studio-visual" aria-label="Scanner capabilities">
+        <div class="studio-scene" data-stage="overview">
+          <canvas id="orbit" aria-hidden="true"></canvas>
+          <div class="machine" aria-hidden="true">
+            <div class="machine-ring outer-ring"></div><div class="machine-ring middle-ring"></div><div class="machine-ring inner-ring"></div>
+            <div class="machine-core"><span>✓</span></div>
+            <div class="code-plate plate-one">&lt;/&gt;</div><div class="code-plate plate-two">{ }</div>
+            <div class="laser"></div><i class="probe probe-one"></i><i class="probe probe-two"></i>
+          </div>
+          <div class="studio-shadow" aria-hidden="true"></div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-heading"><h2>Security telemetry</h2><span id="stage-label">Overview</span></div>
+          <dl><div><dt>Engine</dt><dd>Hybrid Static + AI</dd></div><div><dt>Execution</dt><dd>Zero-run isolation</dd></div><div><dt>Coverage</dt><dd>Secrets · CWE · Cloud config</dd></div><div><dt>Gate</dt><dd>BLOCK / WARN / PASS</dd></div></dl>
+          <p id="core-status" class="core-status" aria-live="polite">Shield core ready</p>
+        </div>
+      </aside>
+    </div>
+    <div class="workspace-entry"><span>Ready for your release</span><div aria-hidden="true"></div></div>
+    <div class="workspace" id="scan-workspace" tabindex="-1" aria-label="Upload and scan workspace">
+      <section class="card setup" aria-labelledby="setup-title">
+        <h2 id="setup-title">Configure scan</h2>
+        <p class="subtext">Select a source and describe where it will run.</p>
+        <form id="scan-form" tabindex="-1">
+          <div role="tablist" aria-label="Project source" class="tabs">
+            <button type="button" role="tab" id="zip-tab" aria-controls="zip-panel" aria-selected="true">ZIP upload</button>
+            <button type="button" role="tab" id="github-tab" aria-controls="github-panel" aria-selected="false" tabindex="-1">GitHub URL</button>
+          </div>
+          <div id="zip-panel" role="tabpanel" aria-labelledby="zip-tab" class="source upload">
+            <label for="file">Project archive</label>
+            <input id="file" name="file" type="file" accept=".zip,application/zip" required aria-describedby="zip-help">
+            <button type="button" id="sample" class="secondary">Load sample vulnerable project</button>
+            <p id="zip-help" class="hint">ZIP archive · up to 5 MB</p>
+          </div>
+          <div id="github-panel" role="tabpanel" aria-labelledby="github-tab" class="source upload" hidden>
+            <label for="url">Public repository URL</label>
+            <input id="url" type="url" name="url" placeholder="https://github.com/owner/repo" maxlength="250" disabled required aria-describedby="github-help">
+            <p id="github-help" class="hint">Scans the default branch of the public repository.</p>
+          </div>
+          <div class="context">
+            <div>
+              <label for="target">Deployment target</label>
+              <select id="target" name="deployment_target">
+                <option value="public_cloud">Public cloud</option>
+                <option value="internal_tool">Internal tool</option>
+                <option value="hackathon_mvp">Hackathon MVP</option>
+              </select>
+            </div>
+            <div>
+              <label for="sensitivity">Data sensitivity</label>
+              <select id="sensitivity" name="data_sensitivity">
+                <option value="high_auth_payments">High · auth or payments</option>
+                <option value="moderate_user_data" selected>Moderate · user data</option>
+                <option value="low_public_static">Low · public or static</option>
+              </select>
+            </div>
+          </div>
+          <label class="check" for="include-tests"><input id="include-tests" type="checkbox" name="include_tests" value="true"> Include test files</label><p class="hint">Scan profile is remembered on this device.</p>
+          <button type="submit" class="primary" id="submit">Run security scan</button>
+        </form>
+      </section>
+
+      <section class="card report" aria-labelledby="report-title">
+        <h2 id="report-title">Scan report</h2>
+        <p class="subtext">Deployment verdict, prioritized findings, and hardening steps.</p>
+        <p id="status" aria-live="polite" aria-atomic="true" class="status"></p>
+        <div id="empty" class="empty">
+          <div class="shield-tile" aria-hidden="true"><span>✓</span></div>
+          <h3>No scan results yet</h3>
+          <p>Run a scan to see your deployment verdict and what to fix before release.</p>
+        </div>
+        <div id="result" hidden></div>
+      </section>
+    </div>
+    <footer>Project files are inspected without running code.</footer>
+  </main>
+</body>
+</html>
